@@ -6,7 +6,7 @@ def verificar_url(url: str) -> dict:
 
     try:
         resposta = httpx.get(url, timeout=10, follow_redirects=True)
-        tempo_resposta_ms = (time.perf_counter() - inicio) * 1000
+        tempo_resposta_ms = round((time.perf_counter() - inicio) * 1000)
         status = "UP" if 200 <= resposta.status_code < 300 else "DOWN"
 
         resultado = {"status" : status,
