@@ -13,4 +13,5 @@ class Servico(Base):
     intervalo_minutos: Mapped[int] = mapped_column()
     ativo: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
     criado_em: Mapped[datetime] = mapped_column(server_default=func.now())
+    ultima_verificacao: Mapped[datetime | None] = mapped_column()
 
