@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
+from app.routers import servicos
+
 app = FastAPI()
 
-@app.get("/status")
-def obter_status():
-    return {"status": "online"}
+app.include_router(servicos.router)
