@@ -24,3 +24,11 @@ class Verificacao(Base):
     tempo_resposta_ms: Mapped[int | None] = mapped_column()
     codigo_http: Mapped[int | None] = mapped_column()
     verificado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+class Incidente(Base):
+    __tablename__ = "incidentes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    servico_id: Mapped[int] = mapped_column(ForeignKey("servicos.id", ondelete="CASCADE"))
+    iniciado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolvido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
