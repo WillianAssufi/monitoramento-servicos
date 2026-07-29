@@ -33,7 +33,7 @@ Próximos passos previstos: containerização da própria API, dashboards no Gra
 
 ## Como rodar
 
-Pré-requisitos: [Docker](https://www.docker.com/) e [uv](https://docs.astral.sh/uv/).
+Pré-requisito: [Docker](https://www.docker.com/).
 
 ```bash
 git clone https://github.com/WillianAssufi/monitoramento-servicos.git
@@ -42,22 +42,24 @@ cd monitoramento-servicos
 # copie o exemplo e ajuste usuário e senha
 copy .env.example .env
 
-# sobe o banco de dados
-docker compose up -d
+# sobe tudo: banco e API
+docker compose up -d --build
+```
 
-# instala as dependências
+O banco e a API sobem juntos em containers. A API aplica as migrations automaticamente ao iniciar, então não há passo manual — depois do `up`, a documentação interativa já está disponível em http://localhost:8000/docs.
+
+### Desenvolvimento local
+
+Para rodar a API fora do container (com reload a cada alteração), é preciso ter o [uv](https://docs.astral.sh/uv/). Suba apenas o banco pelo Docker e rode a API localmente:
+
+```bash
+docker compose up -d db
 uv sync
-
-# aplica as migrations
 uv run alembic upgrade head
-
-# sobe a API
 uv run uvicorn app.main:app --reload
 ```
 
-A documentação interativa fica em http://127.0.0.1:8000/docs.
-
-Para rodar os testes:
+Para rodar os testes (exige um banco de teste; veja `.env.example`):
 
 ```bash
 uv run pytest
@@ -79,7 +81,8 @@ monitoramento-servicos/
 │       └── servicos.py  # rotas de serviços e métricas
 ├── tests/               # testes com pytest
 ├── alembic/versions/    # migrations
-├── docker-compose.yml   # PostgreSQL em container
+├── Dockerfile           # imagem da API
+├── docker-compose.yml   # orquestra API e PostgreSQL
 └── pyproject.toml
 ```
 
@@ -90,6 +93,8 @@ Algumas decisões que vale a pena explicar:
 **API síncrona.** O trabalho mais pesado (bater nas URLs) roda no agendador, em segundo plano, e não no ciclo de requisição e resposta. Como o CRUD é leve, adotar `async` traria complexidade sem resolver um gargalo real.
 
 **Agendador sem estado.** Em vez de manter um job por serviço em memória — que se perde quando a aplicação reinicia e exige manter o agendador em sincronia com o CRUD — o sistema faz uma varredura periódica que consulta o banco e decide quais serviços estão vencidos. O banco é sempre a fonte da verdade.
+
+**Tudo em containers.** A API e o banco rodam como serviços separados no mesmo Compose, cada um com sua responsabilidade e seu ciclo de vida. Dentro da rede do Docker, a API encontra o banco pelo nome do serviço. As migrations são aplicadas automaticamente quando o container da API inicia, de modo que um `docker compose up` deixa o ambiente pronto para uso, sem etapas manuais.
 
 **Datas em UTC.** As colunas de data usam `timestamptz` e o código grava com `datetime.now(timezone.utc)`. O container do Postgres roda em UTC e a máquina de desenvolvimento em outro fuso; padronizar tudo em UTC evita inconsistências. A conversão para o fuso local é responsabilidade de quem exibe.
 
