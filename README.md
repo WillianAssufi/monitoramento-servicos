@@ -1,104 +1,104 @@
 # Watchdog — API de Monitoramento de Serviços
 
-API que monitora a saúde de serviços web: você cadastra URLs, o sistema verifica a disponibilidade periodicamente, registra o histórico de cada verificação e acompanha incidentes (quedas e recuperações).
+Watchdog é uma API para monitorar a disponibilidade de serviços web. Você cadastra as URLs que quer acompanhar e o sistema verifica cada uma no intervalo configurado, guardando o histórico das verificações, registrando os períodos de indisponibilidade e calculando métricas como uptime e tempo médio de resposta.
 
-> **Projeto em desenvolvimento ativo** — construído passo a passo como estudo aprofundado de backend, infraestrutura e observabilidade.
+O projeto está em desenvolvimento e foi construído como estudo de backend, banco de dados e infraestrutura.
 
 ## Stack
 
 | Camada | Tecnologia |
 |---|---|
-| API | Python 3.14 · FastAPI · Uvicorn |
+| API | Python 3.14, FastAPI, Uvicorn |
 | Banco de dados | PostgreSQL 18 (Docker) |
-| ORM / Migrations | SQLAlchemy 2.0 · Alembic |
+| ORM e migrations | SQLAlchemy 2.0, Alembic |
 | Verificações HTTP | httpx |
 | Agendamento | APScheduler |
 | Configuração | pydantic-settings + `.env` |
+| Testes | pytest |
 | Gerenciador de projeto | uv |
 | Infraestrutura | Docker Compose |
 
-**No roadmap:** Playwright (verificação de renderização) · Grafana (dashboards de uptime) · Robot Framework (testes automatizados)
+Próximos passos previstos: containerização da própria API, dashboards no Grafana e verificação de renderização com Playwright.
 
-## Progresso
+## Funcionalidades
 
-- [x] PostgreSQL 18 em container com volume persistente
-- [x] Configuração segura via `.env` + pydantic-settings (zero segredos no código)
-- [x] Conexão SQLAlchemy 2.0 (sintaxe moderna `Mapped` / `mapped_column`)
-- [x] Migrations versionadas com Alembic
-- [x] Modelo de serviços monitorados
-- [x] CRUD completo de serviços (POST, GET, PATCH, DELETE)
-- [x] Verificador HTTP (status up/down, latência, código HTTP)
-- [x] Histórico de verificações persistido
-- [x] Scheduler autônomo (verifica cada serviço no seu próprio intervalo)
-- [x] Timestamps em UTC (`timestamptz`)
-- [ ] Registro de incidentes (início/fim de indisponibilidade)
-- [ ] Métricas de uptime e tempo médio de resposta
-- [ ] Dashboard no Grafana
-- [ ] Testes automatizados
-- [ ] Containerização completa da aplicação
+- Cadastro, listagem, edição e remoção de serviços monitorados
+- Verificação HTTP de cada serviço, com registro de status, latência e código de resposta
+- Agendador que verifica cada serviço no seu próprio intervalo, sem intervenção manual
+- Histórico completo de verificações
+- Detecção de incidentes: o sistema registra quando um serviço cai e quando volta
+- Métricas por serviço: percentual de uptime e tempo médio de resposta
+- Validação das URLs no cadastro e na edição
+- Suíte de testes automatizados cobrindo as rotas e o cálculo das métricas
 
 ## Como rodar
 
-Pré-requisitos: [Docker](https://www.docker.com/) e [uv](https://docs.astral.sh/uv/)
+Pré-requisitos: [Docker](https://www.docker.com/) e [uv](https://docs.astral.sh/uv/).
 
 ```bash
-# 1. Clone o repositório
 git clone https://github.com/WillianAssufi/monitoramento-servicos.git
 cd monitoramento-servicos
 
-# 2. Configure as variáveis de ambiente
-# (copie o exemplo e ajuste usuário/senha)
+# copie o exemplo e ajuste usuário e senha
 copy .env.example .env
 
-# 3. Suba o banco de dados
+# sobe o banco de dados
 docker compose up -d
 
-# 4. Instale as dependências
+# instala as dependências
 uv sync
 
-# 5. Aplique as migrations
+# aplica as migrations
 uv run alembic upgrade head
 
-# 6. Suba a API
+# sobe a API
 uv run uvicorn app.main:app --reload
 ```
 
-Documentação interativa: http://127.0.0.1:8000/docs
+A documentação interativa fica em http://127.0.0.1:8000/docs.
 
-## Estrutura do projeto
+Para rodar os testes:
+
+```bash
+uv run pytest
+```
+
+## Estrutura
 
 ```
 monitoramento-servicos/
 ├── app/
-│   ├── main.py          # aplicação FastAPI + lifespan do scheduler
-│   ├── config.py        # settings (lê o .env)
+│   ├── main.py          # aplicação FastAPI e ciclo de vida do scheduler
+│   ├── config.py        # leitura das variáveis de ambiente
 │   ├── database.py      # engine, sessão e Base do SQLAlchemy
-│   ├── models.py        # modelos do banco (Servico, Verificacao)
-│   ├── schemas.py       # contratos de entrada/saída da API (Pydantic)
-│   ├── verificador.py   # verificação HTTP de uma URL (httpx)
-│   ├── scheduler.py     # varredura periódica dos serviços vencidos
+│   ├── models.py        # tabelas (Servico, Verificacao, Incidente)
+│   ├── schemas.py       # contratos de entrada e saída da API
+│   ├── verificador.py   # verificação HTTP de uma URL
+│   ├── scheduler.py     # varredura periódica dos serviços
 │   └── routers/
-│       └── servicos.py  # CRUD de serviços
-├── alembic/
-│   └── versions/        # migrations versionadas
-├── docker-compose.yml   # PostgreSQL containerizado
-└── pyproject.toml       # dependências do projeto
+│       └── servicos.py  # rotas de serviços e métricas
+├── tests/               # testes com pytest
+├── alembic/versions/    # migrations
+├── docker-compose.yml   # PostgreSQL em container
+└── pyproject.toml
 ```
 
-## Decisões técnicas
+## Notas de implementação
 
-Algumas escolhas conscientes feitas durante o desenvolvimento:
+Algumas decisões que vale a pena explicar:
 
-- **API síncrona** — o trabalho pesado (verificar URLs) rodará em um scheduler em segundo plano, não no ciclo request/response. O CRUD da API é leve, então `async` adicionaria complexidade sem resolver um gargalo real.
-- **`postgres:18` (major fixada)** — recebe patches de segurança automaticamente sem risco de upgrade de versão maior não intencional.
-- **Porta `5433` no host** — permite conviver com uma instalação local de PostgreSQL sem conflito, mapeando para a `5432` interna do container.
-- **`server_default` além de `default`** — valores padrão garantidos pelo próprio banco, protegendo até inserções feitas fora do ORM.
-- **Segredos centralizados no `.env`** — o `docker-compose.yml` referencia variáveis (`${...}`) em vez de conter credenciais, permitindo repositório público sem vazamento.
-- **Scheduler stateless** — em vez de um job por serviço (que se perde em restart e exige sincronização com o CRUD), uma única varredura periódica consulta o banco e decide quem está vencido. A fonte da verdade é sempre o banco.
-- **Timestamps em UTC** — colunas `timestamptz` e `datetime.now(timezone.utc)` no código. Armazena-se no fuso universal; a conversão para fuso local é responsabilidade da camada de exibição.
-- **Desnormalização consciente** — `ultima_verificacao` vive na tabela de serviços (além do histórico) para que a consulta "quem está vencido?" seja trivial; ambas são atualizadas na mesma transação.
-- **Dados honestos** — quando um serviço não responde, `codigo_http` e `tempo_resposta_ms` são gravados como `NULL`, nunca valores inventados. Exceções capturadas de forma específica (`httpx.RequestError`), sem `except` genérico mascarando bugs.
+**API síncrona.** O trabalho mais pesado (bater nas URLs) roda no agendador, em segundo plano, e não no ciclo de requisição e resposta. Como o CRUD é leve, adotar `async` traria complexidade sem resolver um gargalo real.
+
+**Agendador sem estado.** Em vez de manter um job por serviço em memória — que se perde quando a aplicação reinicia e exige manter o agendador em sincronia com o CRUD — o sistema faz uma varredura periódica que consulta o banco e decide quais serviços estão vencidos. O banco é sempre a fonte da verdade.
+
+**Datas em UTC.** As colunas de data usam `timestamptz` e o código grava com `datetime.now(timezone.utc)`. O container do Postgres roda em UTC e a máquina de desenvolvimento em outro fuso; padronizar tudo em UTC evita inconsistências. A conversão para o fuso local é responsabilidade de quem exibe.
+
+**Incidentes por transição de estado.** Uma sequência de verificações com falha representa um único incidente, não vários. O sistema abre um incidente quando um serviço passa de no ar para fora do ar e o encerra quando ele volta, identificando o incidente aberto pela ausência de data de resolução.
+
+**Dados sem invenção.** Quando um serviço não responde, o código HTTP e o tempo de resposta ficam nulos, e não com valores fictícios que distorceriam o histórico. As exceções de rede são capturadas de forma específica, sem um `except` genérico que esconderia outros erros.
+
+**Segredos fora do versionamento.** As credenciais ficam no `.env`, que não é versionado. O `docker-compose.yml` referencia as variáveis em vez de conter as senhas, o que permite manter o repositório público.
 
 ## Autor
 
-**Willian Assufi** — projeto de estudo com foco em backend Python e infraestrutura.
+Willian Assufi. Projeto de estudo com foco em backend Python e infraestrutura.
