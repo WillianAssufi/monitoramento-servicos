@@ -1,16 +1,16 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, HttpUrl
 from datetime import datetime
 
 
 class ServicoCreate(BaseModel):
     nome: str
-    url: str
+    url: HttpUrl
     intervalo_minutos: int
     ativo: bool = True
 
 class ServicoUpdate(BaseModel):
     nome: str | None = None
-    url: str | None = None
+    url: HttpUrl | None = None
     intervalo_minutos: int | None = None
     ativo: bool | None = None
 

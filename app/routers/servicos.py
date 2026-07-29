@@ -13,7 +13,7 @@ router = APIRouter(prefix="/servicos", tags=["Serviços"])
 def criar_servico(servico: ServicoCreate, db: Session = Depends(get_db)):
     novo_servico = Servico(
         nome=servico.nome,
-        url=servico.url,
+        url=str(servico.url),
         intervalo_minutos=servico.intervalo_minutos,
         ativo=servico.ativo,
     )
@@ -47,7 +47,7 @@ def atualizar_servico(servico_id: int, servico_update: ServicoUpdate, db: Sessio
     if servico is None:
         raise HTTPException(status_code=404, detail="Serviço não encontrado")
     
-    dados = servico_update.model_dump(exclude_unset=True)
+    dados = servico_update.model_dump(exclude_unset=True, mode="json")
 
     for campo, valor in dados.items():
         setattr(servico, campo, valor)
