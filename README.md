@@ -4,6 +4,22 @@ Watchdog é uma API para monitorar a disponibilidade de serviços web. Você cad
 
 O projeto está em desenvolvimento e foi construído como estudo de backend, banco de dados e infraestrutura.
 
+## Visão geral
+
+Dashboard de monitoramento no Grafana, lendo direto do banco:
+
+![Métricas gerais no Grafana](docs/dashboard-grafana.png)
+
+Status atual de cada serviço e histórico de incidentes:
+
+![Serviços cadastrados](docs/dashboard-servicos.png)
+
+![Incidentes](docs/dashboard-incidentes.png)
+
+Documentação interativa da API, gerada automaticamente pelo FastAPI:
+
+![Documentação da API](docs/swagger.png)
+
 ## Stack
 
 | Camada | Tecnologia |
