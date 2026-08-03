@@ -12,7 +12,7 @@ class ServicoCreate(BaseModel):
     tipo_verificacao: TipoVerificacao = TipoVerificacao.http
 
 class ServicoUpdate(BaseModel):
-    nome: str | None = Field(min_length=1)
+    nome: str | None = Field(default=None, min_length=1)
     url: HttpUrl | None = None
     intervalo_minutos: int | None = Field(default=None, ge=1)
     ativo: bool | None = None
