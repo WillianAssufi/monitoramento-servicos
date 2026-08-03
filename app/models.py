@@ -12,10 +12,10 @@ class Servico(Base):
     nome: Mapped[str] = mapped_column(String(50))
     url: Mapped[str] = mapped_column(String(2500))
     intervalo_minutos: Mapped[int] = mapped_column()
-    ativo: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
+    ativo: Mapped[bool] = mapped_column(default=True, server_default=text("'true'"))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     ultima_verificacao: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    tipo_verificacao: Mapped[TipoVerificacao] = mapped_column(default=TipoVerificacao.http, server_default=text("http"))
+    tipo_verificacao: Mapped[TipoVerificacao] = mapped_column(default=TipoVerificacao.http, server_default=text("'http'"))
 
 class Verificacao(Base):
     __tablename__ = "verificacoes"
