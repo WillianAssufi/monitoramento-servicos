@@ -4,7 +4,8 @@ from sqlalchemy import select
 
 from app.database import SessionLocal
 from app.models import Servico, Verificacao, Incidente
-from app.verificador import verificar_url
+from app.verificador import verificar_url, verificar_playwright
+from app.tipo_verificacao import TipoVerificacao
 
 
 def verificar_servicos_pendentes():
@@ -22,7 +23,10 @@ def verificar_servicos_pendentes():
                 continue
 
             servico.ultima_verificacao = datetime.now(timezone.utc)
-            resultado = verificar_url(servico.url)
+            if servico.tipo_verificacao == TipoVerificacao.playwright:
+                resultado = verificar_playwright(servico.url)
+            else:
+                resultado = verificar_url(servico.url)
             
             nova_verificacao = Verificacao(
                 servico_id= servico.id,

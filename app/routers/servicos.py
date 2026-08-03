@@ -16,6 +16,7 @@ def criar_servico(servico: ServicoCreate, db: Session = Depends(get_db)):
         url=str(servico.url),
         intervalo_minutos=servico.intervalo_minutos,
         ativo=servico.ativo,
+        tipo_verificacao=servico.tipo_verificacao
     )
     db.add(novo_servico)
     db.commit()
