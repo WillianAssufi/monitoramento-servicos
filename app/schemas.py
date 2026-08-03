@@ -1,20 +1,20 @@
-from pydantic import BaseModel, ConfigDict, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl, Field
 from datetime import datetime
 
 from app.tipo_verificacao import TipoVerificacao
 
 
 class ServicoCreate(BaseModel):
-    nome: str
+    nome: str = Field(min_length=1)
     url: HttpUrl
-    intervalo_minutos: int
+    intervalo_minutos: int = Field(ge=1)
     ativo: bool = True
     tipo_verificacao: TipoVerificacao = TipoVerificacao.http
 
 class ServicoUpdate(BaseModel):
-    nome: str | None = None
+    nome: str | None = Field(min_length=1)
     url: HttpUrl | None = None
-    intervalo_minutos: int | None = None
+    intervalo_minutos: int | None = Field(default=None, ge=1)
     ativo: bool | None = None
     tipo_verificacao: TipoVerificacao | None = None
 
