@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
@@ -13,6 +13,23 @@ assert "teste" in URL_TESTE, "ABORTADO: a URL de teste precisa apontar pro banco
 
 engine_teste = create_engine(URL_TESTE)
 SessionTeste = sessionmaker(bind=engine_teste)
+
+URL_ENTRADA = settings.database_url
+
+def garantir_banco_teste():
+    engine_entrada = create_engine(URL_ENTRADA, isolation_level="AUTOCOMMIT")
+    with engine_entrada.connect() as conn:
+        existe = conn.execute(
+            text("SELECT 1 FROM pg_database WHERE datname = 'monitoramento_servicos_teste'")
+        ).scalar()
+        if not existe:
+            conn.execute(text("CREATE DATABASE monitoramento_servicos_teste"))
+    engine_entrada.dispose()
+
+@pytest.fixture(scope="session", autouse=True)
+def preparar_banco_teste():
+    garantir_banco_teste()
+    yield
 
 @pytest.fixture
 def db():
