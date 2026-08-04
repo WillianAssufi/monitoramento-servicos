@@ -28,23 +28,24 @@ Documentação interativa da API, gerada automaticamente pelo FastAPI:
 | Banco de dados | PostgreSQL 18 (Docker) |
 | ORM e migrations | SQLAlchemy 2.0, Alembic |
 | Verificações HTTP | httpx |
+| Verificações de renderização | Playwright |
 | Agendamento | APScheduler |
+| Observabilidade | Grafana |
 | Configuração | pydantic-settings + `.env` |
 | Testes | pytest |
 | Gerenciador de projeto | uv |
 | Infraestrutura | Docker Compose |
 
-Próximos passos previstos: containerização da própria API, dashboards no Grafana e verificação de renderização com Playwright.
-
 ## Funcionalidades
 
 - Cadastro, listagem, edição e remoção de serviços monitorados
-- Verificação HTTP de cada serviço, com registro de status, latência e código de resposta
+- Dois tipos de verificação por serviço: HTTP (rápida, checa o status da resposta) ou renderização com navegador real via Playwright (confirma que a página carrega de fato)
 - Agendador que verifica cada serviço no seu próprio intervalo, sem intervenção manual
-- Histórico completo de verificações
+- Histórico completo de verificações, com status, latência e código de resposta
 - Detecção de incidentes: o sistema registra quando um serviço cai e quando volta
 - Métricas por serviço: percentual de uptime e tempo médio de resposta
-- Validação das URLs no cadastro e na edição
+- Dashboards de monitoramento no Grafana, lendo direto do banco
+- Validação de entrada: URLs e intervalo mínimo verificados no cadastro e na edição
 - Suíte de testes automatizados cobrindo as rotas e o cálculo das métricas
 
 ## Como rodar
@@ -89,12 +90,13 @@ monitoramento-servicos/
 │   ├── main.py          # aplicação FastAPI e ciclo de vida do scheduler
 │   ├── config.py        # leitura das variáveis de ambiente
 │   ├── database.py      # engine, sessão e Base do SQLAlchemy
-│   ├── models.py        # tabelas (Servico, Verificacao, Incidente)
-│   ├── schemas.py       # contratos de entrada e saída da API
-│   ├── verificador.py   # verificação HTTP de uma URL
-│   ├── scheduler.py     # varredura periódica dos serviços
+│   ├── models.py            # tabelas (Servico, Verificacao, Incidente)
+│   ├── schemas.py           # contratos de entrada e saída da API
+│   ├── tipo_verificacao.py  # enum dos tipos de verificação (http, playwright)
+│   ├── verificador.py       # verificação de uma URL, por HTTP ou navegador
+│   ├── scheduler.py         # varredura periódica; escolhe o tipo de verificação
 │   └── routers/
-│       └── servicos.py  # rotas de serviços e métricas
+│       └── servicos.py      # rotas de serviços e métricas
 ├── tests/               # testes com pytest
 ├── alembic/versions/    # migrations
 ├── Dockerfile           # imagem da API
@@ -113,6 +115,8 @@ Algumas decisões que vale a pena explicar:
 **Tudo em containers.** A API e o banco rodam como serviços separados no mesmo Compose, cada um com sua responsabilidade e seu ciclo de vida. Dentro da rede do Docker, a API encontra o banco pelo nome do serviço. As migrations são aplicadas automaticamente quando o container da API inicia, de modo que um `docker compose up` deixa o ambiente pronto para uso, sem etapas manuais.
 
 **Datas em UTC.** As colunas de data usam `timestamptz` e o código grava com `datetime.now(timezone.utc)`. O container do Postgres roda em UTC e a máquina de desenvolvimento em outro fuso; padronizar tudo em UTC evita inconsistências. A conversão para o fuso local é responsabilidade de quem exibe.
+
+**Dois tipos de verificação.** Nem todo serviço precisa do mesmo rigor: checar se uma API responde 200 é diferente de checar se um site com muito JavaScript realmente renderiza. Cada serviço declara seu tipo (`http` ou `playwright`, um enum), e o agendador escolhe a função apropriada. A verificação por navegador é bem mais lenta e pesada, então fica reservada aos serviços que precisam dela — os demais usam a verificação HTTP, rápida. As duas funções devolvem o mesmo formato, então o resto do fluxo não precisa saber qual foi usada.
 
 **Incidentes por transição de estado.** Uma sequência de verificações com falha representa um único incidente, não vários. O sistema abre um incidente quando um serviço passa de no ar para fora do ar e o encerra quando ele volta, identificando o incidente aberto pela ausência de data de resolução.
 
