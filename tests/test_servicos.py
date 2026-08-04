@@ -150,3 +150,42 @@ def test_metricas(client, db):
 
     assert resposta.json()["uptime %"] == 66.67
     assert resposta.json()["tempo_medio"] == 150
+
+def test_criar_servico_intervalo_invalido(client):
+    resposta = client.post("/servicos", json={
+                                        "nome": "Google",
+                                        "url": "https://google.com/",
+                                        "intervalo_minutos": 0,
+                                    })
+
+    assert resposta.status_code == 422
+
+def test_criar_servico_tipo_invalido(client):
+    resposta = client.post("/servicos", json={
+                                        "nome": "Google",
+                                        "url": "https://google.com/",
+                                        "intervalo_minutos": 5,
+                                        "tipo_verificacao" : "xyz"
+                                    })
+
+    assert resposta.status_code == 422
+
+def test_criar_servico_sem_nome(client):
+    resposta = client.post("/servicos", json={
+                                            "nome": "",
+                                            "url": "https://google.com/",
+                                            "intervalo_minutos": 5,
+                                        })
+    
+    assert resposta.status_code == 422
+
+def test_criar_servico_com_playwright(client):
+    resposta = client.post("/servicos", json={
+                                            "nome": "Google",
+                                            "url": "https://google.com/",
+                                            "intervalo_minutos": 5,
+                                            "tipo_verificacao" : "playwright"
+                                        })
+
+    assert resposta.status_code == 201
+    assert resposta.json()["tipo_verificacao"] == "playwright"
