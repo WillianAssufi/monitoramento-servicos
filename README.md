@@ -63,7 +63,7 @@ copy .env.example .env
 docker compose up -d --build
 ```
 
-O banco e a API sobem juntos em containers. A API aplica as migrations automaticamente ao iniciar, então não há passo manual — depois do `up`, a documentação interativa já está disponível em http://localhost:8000/docs.
+O banco e a API sobem juntos em containers. A API aplica as migrations automaticamente ao iniciar, então não há passo manual — depois do `up`, a documentação interativa já está disponível em http://localhost:8000/docs e o Grafana em http://localhost:3000/ com login padrão admin/admin
 
 ### Desenvolvimento local
 
