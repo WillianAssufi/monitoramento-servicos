@@ -26,7 +26,7 @@ def criar_servico(servico: ServicoCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model= list[ServicoOut])
 def listar_servicos(db: Session = Depends(get_db)):
-    query = select(Servico)
+    query = select(Servico).order_by(Servico.id)
     resultado = db.execute(query)
     servicos = resultado.scalars().all()
 
