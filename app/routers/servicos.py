@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 
 from app.database import get_db
 from app.models import Servico, Verificacao
-from app.schemas import ServicoCreate, ServicoOut, ServicoUpdate
+from app.schemas import ServicoCreate, ServicoComStatus, ServicoOut, ServicoUpdate
+from app.status_servico import StatusServico
 
 
 router = APIRouter(prefix="/servicos", tags=["Serviços"])
@@ -24,11 +25,32 @@ def criar_servico(servico: ServicoCreate, db: Session = Depends(get_db)):
 
     return novo_servico
 
-@router.get("", response_model= list[ServicoOut])
+@router.get("", response_model= list[ServicoComStatus])
 def listar_servicos(db: Session = Depends(get_db)):
-    query = select(Servico).order_by(Servico.id)
-    resultado = db.execute(query)
-    servicos = resultado.scalars().all()
+    ranking = (
+        select(
+            Verificacao.servico_id,
+            Verificacao.status,
+            func.row_number().over(
+                partition_by=Verificacao.servico_id,
+                order_by=(Verificacao.verificado_em.desc(), Verificacao.id.desc())
+            ).label("posicao")
+        ).subquery()
+    )
+
+    query = (
+        select(Servico, ranking.c.status)
+        .outerjoin(ranking, and_(ranking.c.servico_id == Servico.id, ranking.c.posicao == 1))
+        .order_by(Servico.id)
+    )
+    resultado = db.execute(query).all()
+
+    servicos = []
+    for servico, status in resultado:
+        servico_com_status = ServicoComStatus.model_validate(servico)
+        if status is not None:
+            servico_com_status.status = StatusServico(status)
+        servicos.append(servico_com_status)
 
     return servicos
 

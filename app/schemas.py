@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, HttpUrl, Field
 from datetime import datetime
 
+from app.status_servico import StatusServico
 from app.tipo_verificacao import TipoVerificacao
 
 
@@ -28,3 +29,6 @@ class ServicoOut(BaseModel):
     tipo_verificacao: TipoVerificacao
 
     model_config = ConfigDict(from_attributes=True)
+
+class ServicoComStatus(ServicoOut):
+    status: StatusServico = StatusServico.aguardando
