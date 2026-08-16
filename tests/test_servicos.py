@@ -80,6 +80,61 @@ def test_listar_servicos(client):
     assert dados[0]["intervalo_minutos"] == 5
     assert dados[0]["ativo"] is True
 
+def test_listar_servicos_status_aguardando(client):
+    client.post("/servicos", json={
+                    "nome": "Google",
+                    "url": "https://google.com/",
+                    "intervalo_minutos": 5,
+                })
+
+    resposta = client.get("/servicos")
+
+    assert resposta.status_code == 200
+    assert resposta.json()[0]["status"] == "AGUARDANDO"
+
+def test_listar_servicos_status_da_ultima_verificacao(client, db):
+    novo_servico = client.post("/servicos", json={
+                        "nome": "Google",
+                        "url": "https://google.com/",
+                        "intervalo_minutos": 5,
+                    })
+    servico_id = novo_servico.json()["id"]
+
+    db.add(Verificacao(servico_id=servico_id, status="UP", tempo_resposta_ms=100, codigo_http=200))
+    db.commit()
+    db.add(Verificacao(servico_id=servico_id, status="DOWN", tempo_resposta_ms=None, codigo_http=None))
+    db.commit()
+
+    resposta = client.get("/servicos")
+
+    assert resposta.status_code == 200
+    assert resposta.json()[0]["status"] == "DOWN"
+
+def test_listar_servicos_status_por_servico(client, db):
+    caido = client.post("/servicos", json={
+                    "nome": "Caido",
+                    "url": "https://caido.com/",
+                    "intervalo_minutos": 5,
+                }).json()["id"]
+    no_ar = client.post("/servicos", json={
+                    "nome": "No ar",
+                    "url": "https://noar.com/",
+                    "intervalo_minutos": 5,
+                }).json()["id"]
+    client.post("/servicos", json={
+                    "nome": "Novo",
+                    "url": "https://novo.com/",
+                    "intervalo_minutos": 5,
+                })
+
+    db.add(Verificacao(servico_id=caido, status="DOWN", tempo_resposta_ms=None, codigo_http=None))
+    db.add(Verificacao(servico_id=no_ar, status="UP", tempo_resposta_ms=120, codigo_http=200))
+    db.commit()
+
+    dados = client.get("/servicos").json()
+
+    assert [s["status"] for s in dados] == ["DOWN", "UP", "AGUARDANDO"]
+
 def test_buscar_servico(client):
     novo_servico = client.post("/servicos", json={
                         "nome": "Google",
